@@ -119,13 +119,13 @@ interface SidebarProps {
           { label: "Collect NOC", path: "/loan/noc", icon: <ShieldCheck size={16} /> },
         ]
       },
-      {
-        label: "BG",
-        icon: <Banknote size={20} />,
-        subItems: [
-          { label: "All BG", path: "/bg/all", icon: <List size={16} /> },
-        ]
-      },
+      // {
+      //   label: "BG",
+      //   icon: <Banknote size={20} />,
+      //   subItems: [
+      //     { label: "All BG", path: "/bg/all", icon: <List size={16} /> },
+      //   ]
+      // },
 
       {
         label: "Settings",
