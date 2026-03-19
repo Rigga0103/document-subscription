@@ -15,6 +15,7 @@ interface ShareModalProps {
     document?: DocumentItem;
     isBatch?: boolean;
     batchDocuments?: DocumentItem[];
+    onSuccessShare?: (ids: string[]) => void;
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({
@@ -26,7 +27,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
     fileContent,
     document,
     isBatch = false,
-    batchDocuments = []
+    batchDocuments = [],
+    onSuccessShare
 }) => {
     const [recipientName, setRecipientName] = useState('');
     const [email, setEmail] = useState('');
@@ -76,11 +78,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
         prevIsOpenRef.current = isOpen;
     }, [isOpen]); // Only depend on isOpen
 
-    // Handle WhatsApp sharing
     const handleShareWhatsApp = (): void => {
-        const whatsappMessage = generateWhatsAppMessage();
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
-
         // Log the WhatsApp sharing activity with expiry
         if (isBatch && batchDocuments.length > 0) {
             batchDocuments.forEach((doc) => {
@@ -108,30 +106,20 @@ const ShareModal: React.FC<ShareModalProps> = ({
             });
         }
 
-        window.open(whatsappUrl, '_blank');
+        // window.open(whatsappUrl, '_blank');
+        toast.success("Document shared successfully on WhatsApp ✅");
+
+        if (onSuccessShare) {
+            if (isBatch && batchDocuments.length > 0) {
+                onSuccessShare(batchDocuments.map(doc => doc.id));
+            } else if (documentId) {
+                onSuccessShare([documentId]);
+            }
+        }
     };
 
     if (!isOpen || !type) return null;
 
-    const getPreviewUrl = (url: string | undefined): string => {
-        if (!url) return '';
-        if (url.includes("drive.google.com")) {
-            let fileId = null;
-            const viewMatch = url.match(/\/file\/d\/([^/]+)/);
-            if (viewMatch) {
-                fileId = viewMatch[1];
-            } else {
-                const openMatch = url.match(/[?&]id=([^&]+)/);
-                if (openMatch) {
-                    fileId = openMatch[1];
-                }
-            }
-            if (fileId) {
-                return `https://drive.google.com/file/d/${fileId}/preview`;
-            }
-        }
-        return url;
-    };
 
 
     function getSafeDriveLink(fileUrl: string) {
@@ -248,59 +236,6 @@ const ShareModal: React.FC<ShareModalProps> = ({
         return body;
     };
 
-    const generateWhatsAppMessage = (): string => {
-        let whatsappMessage = '';
-
-        if (isBatch && batchDocuments.length > 0) {
-            whatsappMessage = `📄 *Shared ${batchDocuments.length} Documents*\n\n`;
-
-            batchDocuments.forEach((doc, index) => {
-                whatsappMessage += `*${index + 1}. ${doc.documentName}*\n`;
-                if (doc.sn) whatsappMessage += `📋 Serial No: ${doc.sn}\n`;
-                if (doc.category) whatsappMessage += `🏷️ Category: ${doc.category}\n`;
-                if (doc.companyName) whatsappMessage += `🏢 Company: ${doc.companyName}\n`;
-                if (doc.documentType) whatsappMessage += `📄 Type: ${doc.documentType}\n`;
-                if (doc.renewalDate) {
-                    const date = new Date(doc.renewalDate);
-                    whatsappMessage += `📅 Renewal Date: ${date instanceof Date && !isNaN(date.getTime()) ? date.toLocaleDateString() : doc.renewalDate}\n`;
-                }
-                if (doc.fileContent) {
-                    const previewUrl = getPreviewUrl(doc.fileContent);
-                    whatsappMessage += `🔗 Link: ${previewUrl}\n`;
-                }
-                whatsappMessage += `\n`;
-            });
-        } else {
-            whatsappMessage = `📄 *Document Shared:* ${documentName}\n\n`;
-
-            if (documentDetails) {
-                if (documentDetails.sn) whatsappMessage += `📋 *Serial No:* ${documentDetails.sn}\n`;
-                if (documentDetails.category) whatsappMessage += `🏷️ *Category:* ${documentDetails.category}\n`;
-                if (documentDetails.companyName) whatsappMessage += `🏢 *Company:* ${documentDetails.companyName}\n`;
-                if (documentDetails.documentType) whatsappMessage += `📄 *Type:* ${documentDetails.documentType}\n`;
-                if (documentDetails.renewalDate) {
-                    const date = new Date(documentDetails.renewalDate);
-                    whatsappMessage += `📅 *Renewal Date:* ${date instanceof Date && !isNaN(date.getTime()) ? date.toLocaleDateString() : documentDetails.renewalDate}\n`;
-                }
-            }
-
-            if (message) {
-                whatsappMessage += `\n💬 *Message:* ${message}\n`;
-            }
-
-            if (fileContent) {
-                const previewUrl = getPreviewUrl(fileContent);
-                whatsappMessage += `\n🔗 *Document Link:* ${previewUrl}`;
-            }
-        }
-
-        // Add expiry notice to WhatsApp message
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + 7);
-        whatsappMessage += `\n\n⏰ *Link Expiry:* This link will expire on ${expiryDate.toLocaleDateString()} (7 days from now)`;
-
-        return whatsappMessage;
-    };
 
     const handleSendEmail = async (): Promise<boolean> => {
         if (!email.trim()) {
@@ -601,7 +536,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     value={whatsapp}
                                     onChange={(e) => setWhatsapp(e.target.value)}
                                     className="flex-1 w-full px-3 py-2 border border-gray-200 rounded-r-lg focus:ring-2 focus:ring-green-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    placeholder="98765 43210"
+                                    placeholder="7222923078"
                                     disabled={isSending}
                                 />
                             </div>

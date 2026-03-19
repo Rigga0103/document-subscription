@@ -344,6 +344,14 @@ const AllDocuments = () => {
     loadDocuments();
   };
 
+  const handleSuccessShare = (ids: string[]) => {
+    setSelectedIds((prev) => {
+      const newSelected = new Set(prev);
+      ids.forEach((id) => newSelected.add(id));
+      return newSelected;
+    });
+  };
+
   const handleEditModalClose = () => {
     setIsEditModalOpen(false);
     loadDocuments();
@@ -933,6 +941,7 @@ const AllDocuments = () => {
         document={shareDoc?.document}
         isBatch={shareDoc?.isBatch}
         batchDocuments={shareDoc?.batchDocuments}
+        onSuccessShare={handleSuccessShare}
       />
 
       {/* Delete Confirmation Modal */}
