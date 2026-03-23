@@ -449,15 +449,28 @@ function doGet(e) {
         const data = sheet.getDataRange().getValues();
         console.log(`Fetched ${data.length} rows from ${sheetName}`);
 
-        // Filter out empty rows and deduplicate
-        const filteredData = removeDuplicatesAndEmptyRows(data);
+        // For "Shared Documents" sheet, only remove empty rows but keep ALL records (no deduplication)
+        // For other sheets, apply deduplication as before
+        let filteredData;
+        if (sheetName === "Shared Documents") {
+            // Only remove empty rows, keep all share records
+            filteredData = data.filter((row, index) => {
+                // Keep header row (index 0)
+                if (index === 0) return true;
+                // Remove completely empty rows
+                return row && row.length > 0 && row.some(cell => cell && cell.toString().trim() !== '');
+            });
+        } else {
+            // Apply deduplication for other sheets
+            filteredData = removeDuplicatesAndEmptyRows(data);
+        }
 
         const result = {
             success: true,
             sheet: sheetName,
             totalRows: data.length,
             filteredRows: filteredData.length,
-            removedDuplicates: data.length - filteredData.length,
+            removedDuplicates: sheetName === "Shared Documents" ? 0 : data.length - filteredData.length,
             data: filteredData,
             timestamp: new Date().toISOString()
         };

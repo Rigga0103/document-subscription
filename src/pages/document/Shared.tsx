@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Search,
   FileText,
-  Download,
   Mail,
   MessageCircle,
   Loader,
@@ -54,87 +53,44 @@ const SharedDocuments = () => {
         throw new Error("Google Script URL is not defined");
       }
 
-      const url = new URL(GOOGLE_SCRIPT_URL);
+      const url = `${GOOGLE_SCRIPT_URL}?sheet=Shared Documents&_t=${Date.now()}`;
 
-      url.searchParams.set("sheet", "Shared Documents");
-      url.searchParams.set("_t", new Date().getTime().toString());
-
-      const res = await fetch(url.toString(), {
-        method: "GET",
-        mode: "cors",
-      });
+      const res = await fetch(url);
 
       if (!res.ok) {
-        throw new Error(
-          `Failed to fetch share history: ${res.status} ${res.statusText}`,
-        );
+        throw new Error(`Error: ${res.status}`);
       }
 
       const json = await res.json();
 
-      if (!json || json.success !== true || !Array.isArray(json.data)) {
-        throw new Error(
-          json?.error ||
-            "Invalid response while fetching Shared Documents sheet",
-        );
+      if (!json?.data || !Array.isArray(json.data)) {
+        throw new Error("Invalid data from Shared Documents sheet");
       }
 
+      // Fetch ALL rows from "Shared Documents" sheet
       const rows = json.data;
-      const body = rows.length > 0 ? rows.slice(1) : rows;
 
-      // Transform Google Sheets data
-      const transformedData = body.map((row: any[], index: number) => {
-        // Handle different possible column indices
-        const timestamp = row[0] || "";
-        const email = row[1] || "";
-        const name = row[2] || "";
-        const documentName = row[3] || "";
-        const documentType = row[4] || "";
-        const category = row[5] || "";
-        const serialNo = row[6] || "";
-        const image = row[7] || "";
-        const sourceSheet = row[8] || "Shared Documents";
-        const shareMethod = row[9] || "";
-        const number = row[10] || "";
-
-        // Determine contact info based on share method
-        let contactInfo = "";
-        if (shareMethod === "Email" || shareMethod === "Both") {
-          contactInfo = email;
-        } else if (shareMethod === "WhatsApp") {
-          contactInfo = number;
-        }
-
-        // Generate share number
-        const shareNo = `SH-${String(index + 1).padStart(3, "0")}`;
-
+      const transformedData = rows.slice(1).map((row: any[], index: number) => {
         return {
-          id: `share-${Date.now()}-${index}`,
-          shareNo,
-          dateTime: timestamp || new Date().toISOString(),
-          docSerial: serialNo || "N/A",
-          docName: documentName || "N/A",
-          docFile: image || "N/A",
-          sharedVia: shareMethod || "N/A",
-          recipientName: name || "N/A",
-          contactInfo: contactInfo || "N/A",
-          email,
-          documentType,
-          category,
-          serialNo,
-          image,
-          sourceSheet,
-          shareMethod,
-          number,
+          id: `share-${index}`,
+          shareNo: `SH-${String(index + 1).padStart(3, "0")}`,
+          dateTime: row[0] || "",           // Timestamp
+          email: row[1] || "",               // Email
+          recipientName: row[2] || "",       // Name
+          docName: row[3] || "",             // Document Name
+          documentType: row[4] || "",        // Document Type
+          category: row[5] || "",            // Category
+          docSerial: row[6] || "",           // Serial No
+          image: row[7] || "",               // Image
+          sourceSheet: row[8] || "Shared Documents",  // Source Sheet
+          sharedVia: row[9] || "",           // Share Method
+          contactInfo: row[10] || row[1] || "N/A",    // Number (or Email fallback)
         };
       });
 
       setShareHistory(transformedData);
-    } catch (error) {
-      console.error("Error fetching share history:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to load share history",
-      );
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch data");
     } finally {
       setLoading(false);
     }
@@ -153,12 +109,6 @@ const SharedDocuments = () => {
 
   const handleRefresh = () => {
     fetchShareHistoryFromGoogleSheets();
-  };
-
-  const handleDownload = (fileUrl: string) => {
-    if (fileUrl && fileUrl !== "N/A") {
-      window.open(fileUrl, "_blank");
-    }
   };
 
   if (loading) {
@@ -215,7 +165,7 @@ const SharedDocuments = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <input
               type="text"
-              placeholder="Search by Share No, Recipient, Serial..."
+              placeholder="Search by Name, Document, Serial, Email..."
               className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -233,36 +183,39 @@ const SharedDocuments = () => {
 
       {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[calc(100vh-250px)]">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
               <tr>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Share No.
+                  #
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Date & Time
+                  Date
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Serial No.
+                  Email
+                </th>
+                <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  Name
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   Document Name
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Document File
+                  Document Type
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Shared Via
+                  Category
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Recipient Name
+                  Serial No.
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Contact Info
+                  Share Method
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Source Sheet
+                  Number
                 </th>
               </tr>
             </thead>
@@ -278,8 +231,11 @@ const SharedDocuments = () => {
                   <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
                     {item.dateTime ? formatDate(item.dateTime) : "N/A"}
                   </td>
-                  <td className="p-3 text-sm text-gray-900 font-mono">
-                    {item.docSerial}
+                  <td className="p-3 text-sm text-gray-600">
+                    {item.email || "N/A"}
+                  </td>
+                  <td className="p-3 text-sm text-gray-900 font-medium">
+                    {item.recipientName || "N/A"}
                   </td>
                   <td className="p-3 text-sm text-gray-900">
                     <div className="flex items-center gap-2">
@@ -291,77 +247,28 @@ const SharedDocuments = () => {
                         {item.docName}
                       </span>
                     </div>
-                    {item.documentType && (
-                      <span className="text-xs text-gray-400 block mt-1">
-                        {item.documentType}
-                      </span>
-                    )}
                   </td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => handleDownload(item.docFile)}
-                      className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg transition-colors ${
-                        item.docFile &&
-                        item.docFile !== "N/A" &&
-                        item.docFile.startsWith("http")
-                          ? "text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100"
-                          : "text-gray-400 bg-gray-100 cursor-not-allowed"
-                      }`}
-                      disabled={
-                        !item.docFile ||
-                        item.docFile === "N/A" ||
-                        !item.docFile.startsWith("http")
-                      }
-                    >
-                      <Download size={14} />
-                      {item.docFile &&
-                      item.docFile !== "N/A" &&
-                      item.docFile.startsWith("http")
-                        ? "View File"
-                        : "No File"}
-                    </button>
+                  <td className="p-3 text-sm text-gray-600">
+                    {item.documentType || "N/A"}
+                  </td>
+                  <td className="p-3 text-sm text-gray-600">
+                    {item.category || "N/A"}
+                  </td>
+                  <td className="p-3 text-sm text-gray-900 font-mono">
+                    {item.docSerial || "N/A"}
                   </td>
                   <td className="p-3 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
-                      {item.sharedVia === "Email" ||
-                      item.sharedVia === "Email" ? (
+                      {item.sharedVia === "Email" ? (
                         <Mail size={16} className="text-blue-500" />
-                      ) : item.sharedVia === "WhatsApp" ||
-                        item.sharedVia === "WhatsApp" ? (
+                      ) : item.sharedVia === "WhatsApp" ? (
                         <MessageCircle size={16} className="text-green-500" />
-                      ) : item.sharedVia === "Both" ? (
-                        <div className="flex items-center gap-1">
-                          <Mail size={14} className="text-blue-500" />
-                          <MessageCircle size={14} className="text-green-500" />
-                        </div>
                       ) : null}
                       {item.sharedVia}
                     </div>
                   </td>
-                  <td className="p-3 text-sm text-gray-900 font-medium">
-                    {item.recipientName}
-                  </td>
-                  <td className="p-3 text-sm text-gray-500 whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span>{item.contactInfo}</span>
-                      {item.email &&
-                        item.shareMethod !== "Email" &&
-                        item.shareMethod !== "Both" && (
-                          <span className="text-xs text-gray-400">
-                            Email: {item.email}
-                          </span>
-                        )}
-                      {item.number &&
-                        item.shareMethod !== "WhatsApp" &&
-                        item.shareMethod !== "Both" && (
-                          <span className="text-xs text-gray-400">
-                            WhatsApp: {item.number}
-                          </span>
-                        )}
-                    </div>
-                  </td>
-                  <td className="p-3 text-sm text-gray-400">
-                    {item.sourceSheet}
+                  <td className="p-3 text-sm text-gray-600">
+                    {item.contactInfo || "N/A"}
                   </td>
                 </tr>
               ))}
@@ -395,21 +302,30 @@ const SharedDocuments = () => {
             className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3"
           >
             <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-                  {item.shareNo}
-                </span>
-                <p className="text-xs text-gray-400">
-                  {item.dateTime ? formatDate(item.dateTime) : "N/A"}
-                </p>
-              </div>
-              <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                {item.sourceSheet}
+              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                {item.shareNo}
               </span>
+              <p className="text-xs text-gray-400">
+                {item.dateTime ? formatDate(item.dateTime) : "N/A"}
+              </p>
             </div>
 
-            <div className="border-t border-gray-50 pt-3 flex flex-col space-y-2.5">
-              <div className="flex items-start justify-between">
+            <div className="border-t border-gray-50 pt-3 flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Email:</span>
+                <span className="text-sm text-gray-900 text-right">
+                  {item.email || "N/A"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Name:</span>
+                <span className="text-sm text-gray-900 font-medium text-right">
+                  {item.recipientName || "N/A"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500">Document:</span>
                 <div className="text-right">
                   <span className="text-sm font-medium text-gray-900 block">
@@ -420,78 +336,41 @@ const SharedDocuments = () => {
                       {item.documentType}
                     </span>
                   )}
-                  <span className="text-[10px] text-gray-400 font-mono block">
-                    {item.docSerial}
-                  </span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Recipient:</span>
-                <div className="text-right">
-                  <span className="text-sm text-gray-900 block">
-                    {item.recipientName}
-                  </span>
-                  <span className="text-xs text-gray-400 block">
-                    {item.contactInfo}
-                  </span>
-                  {item.email &&
-                    item.shareMethod !== "Email" &&
-                    item.shareMethod !== "Both" && (
-                      <span className="text-xs text-gray-400 block">
-                        Email: {item.email}
-                      </span>
-                    )}
-                  {item.number &&
-                    item.shareMethod !== "WhatsApp" &&
-                    item.shareMethod !== "Both" && (
-                      <span className="text-xs text-gray-400 block">
-                        WhatsApp: {item.number}
-                      </span>
-                    )}
-                </div>
+                <span className="text-xs text-gray-500">Category:</span>
+                <span className="text-sm text-gray-600 text-right">
+                  {item.category || "N/A"}
+                </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Shared Via:</span>
+                <span className="text-xs text-gray-500">Serial No:</span>
+                <span className="text-sm text-gray-900 font-mono text-right">
+                  {item.docSerial || "N/A"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Share Method:</span>
                 <div className="flex items-center gap-1.5 text-sm text-gray-700">
-                  {item.sharedVia === "Email" || item.sharedVia === "Email" ? (
+                  {item.sharedVia === "Email" ? (
                     <Mail size={14} className="text-blue-500" />
-                  ) : item.sharedVia === "WhatsApp" ||
-                    item.sharedVia === "WhatsApp" ? (
+                  ) : item.sharedVia === "WhatsApp" ? (
                     <MessageCircle size={14} className="text-green-500" />
-                  ) : item.sharedVia === "Both" ? (
-                    <div className="flex items-center gap-1">
-                      <Mail size={12} className="text-blue-500" />
-                      <MessageCircle size={12} className="text-green-500" />
-                    </div>
                   ) : null}
                   {item.sharedVia}
                 </div>
               </div>
 
-              <button
-                onClick={() => handleDownload(item.docFile)}
-                className={`w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-colors ${
-                  item.docFile &&
-                  item.docFile !== "N/A" &&
-                  item.docFile.startsWith("http")
-                    ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-800"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-                disabled={
-                  !item.docFile ||
-                  item.docFile === "N/A" ||
-                  !item.docFile.startsWith("http")
-                }
-              >
-                <Download size={14} />
-                {item.docFile &&
-                item.docFile !== "N/A" &&
-                item.docFile.startsWith("http")
-                  ? "View Document File"
-                  : "No File Available"}
-              </button>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Number:</span>
+                <span className="text-sm text-gray-600 text-right">
+                  {item.contactInfo || "N/A"}
+                </span>
+              </div>
             </div>
           </div>
         ))}
