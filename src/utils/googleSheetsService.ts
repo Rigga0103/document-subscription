@@ -503,6 +503,7 @@ export interface EmailData {
   documentType?: string;
   category?: string;
   serialNo?: string;
+  fileContent?: string;
 }
 
 export const sendEmailViaGoogleSheets = async (emailData: EmailData) => {
@@ -518,6 +519,7 @@ export const sendEmailViaGoogleSheets = async (emailData: EmailData) => {
     if (emailData.documentType) params.append('documentType', emailData.documentType);
     if (emailData.category) params.append('category', emailData.category);
     if (emailData.serialNo) params.append('serialNo', emailData.serialNo);
+    if (emailData.fileContent) params.append('fileContent', emailData.fileContent);
 
     const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
 

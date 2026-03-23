@@ -84,7 +84,7 @@ const SharedDocuments = () => {
           image: row[7] || "",               // Image
           sourceSheet: row[8] || "Shared Documents",  // Source Sheet
           sharedVia: row[9] || "",           // Share Method
-          contactInfo: row[10] || row[1] || "N/A",    // Number (or Email fallback)
+          contactInfo: row[9] === "Email" ? "N/A" : (row[10] || "N/A"),    // Number (only if not Email)
         };
       });
 

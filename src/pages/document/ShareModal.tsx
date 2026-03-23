@@ -263,7 +263,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
                     recipientName: recipientName,
                     documentType: batchDocuments[0]?.documentType,
                     category: batchDocuments[0]?.category,
-                    serialNo: batchDocuments[0]?.sn
+                    serialNo: batchDocuments[0]?.sn,
+                    fileContent: batchDocuments[0]?.fileContent
                 });
 
                 if (result.success) {
@@ -289,7 +290,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
                     recipientName: recipientName,
                     documentType: documentDetails?.documentType,
                     category: documentDetails?.category,
-                    serialNo: documentDetails?.sn
+                    serialNo: documentDetails?.sn,
+                    fileContent: fileContent
                 });
 
                 if (result.success) {
