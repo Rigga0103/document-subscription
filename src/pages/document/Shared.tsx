@@ -203,6 +203,9 @@ const SharedDocuments = () => {
                   Document Name
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  Document
+                </th>
+                <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   Document Type
                 </th>
                 <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -247,6 +250,21 @@ const SharedDocuments = () => {
                         {item.docName}
                       </span>
                     </div>
+                  </td>
+                  <td className="p-3">
+                    {item.image && item.image !== "N/A" && item.image.startsWith("http") ? (
+                      <a
+                        href={item.image}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                      >
+                        <FileText size={14} />
+                        View
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-400">No Doc</span>
+                    )}
                   </td>
                   <td className="p-3 text-sm text-gray-600">
                     {item.documentType || "N/A"}
